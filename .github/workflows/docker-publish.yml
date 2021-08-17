@@ -1,63 +1,61 @@
-name: Docker
+name: Build Image
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-on:
-  schedule:
-    - cron: '33 2 * * *'
-  push:
-    branches: [ tautulli ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ tautulli ]
+on: [push, pull_request, workflow_dispatch]
 
 env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
+  ENDPOINT: "aelfa/docker-mod"
+  BRANCH: "tautulli"
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.3
 
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build image
+        run: |
+          docker build --no-cache -t ${{ github.sha }} .
 
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Tag image
+        if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) }}
+        run: |
+          docker tag ${{ github.sha }} ${ENDPOINT}:${BRANCH}
+          docker tag ${{ github.sha }} ${ENDPOINT}:${{ github.sha }}
+          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BRANCH}
+          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${{ github.sha }}
 
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+      - name: Credential check
+        if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) }}
+        run: |
+          echo "CR_USER=${{ secrets.CR_USER }}" >> $GITHUB_ENV
+          echo "CR_PAT=${{ secrets.CR_PAT }}" >> $GITHUB_ENV
+          echo "DOCKERUSER=${{ secrets.DOCKERUSER }}" >> $GITHUB_ENV
+          echo "DOCKERPASS=${{ secrets.DOCKERPASS }}" >> $GITHUB_ENV
+          if [[ "${{ secrets.CR_USER }}" == "" && "${{ secrets.CR_PAT }}" == "" && "${{ secrets.DOCKERUSER }}" == "" && "${{ secrets.DOCKERPASS }}" == "" ]]; then
+            echo "::error::Push credential secrets missing."
+            echo "::error::You must set either CR_USER & CR_PAT or DOCKERUSER & DOCKERPASS as secrets in your repo settings."
+            echo "::error::See https://github.com/linuxserver/docker-mods/blob/master/README.md for more information/instructions."
+            exit 1
+          fi
+
+      - name: Login to GitHub Container Registry
+        if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) && env.CR_USER && env.CR_PAT }}
+        run: |
+          echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u ${{ secrets.CR_USER }} --password-stdin
+
+      - name: Push tags to GitHub Container Registry
+        if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) && env.CR_USER && env.CR_PAT }}
+        run: |
+          docker push ghcr.io/${ENDPOINT}:${{ github.sha }}
+          docker push ghcr.io/${ENDPOINT}:${BRANCH}
+
+      - name: Login to DockerHub
+        if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) && env.DOCKERUSER && env.DOCKERPASS }}
+        run: |
+          echo ${{ secrets.DOCKERPASS }} | docker login -u ${{ secrets.DOCKERUSER }} --password-stdin
+
+      - name: Push tags to DockerHub
+        if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) && env.DOCKERUSER && env.DOCKERPASS }}
+        run: |
+          docker push ${ENDPOINT}:${{ github.sha }}
+          docker push ${ENDPOINT}:${BRANCH}
