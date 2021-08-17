@@ -1,0 +1,32 @@
+#!/usr/bin/with-contenv bash
+
+ echo "**** install build packages ****" && \
+ apk add --no-cache --virtual=build-dependencies \
+    libc-dev \
+    fortify-headers \
+    linux-headers \
+	gcc \
+	py3-pip \
+	python3-dev && \
+ echo "**** install packages ****" && \
+ apk add --no-cache \
+	py3-setuptools \
+	python3 && \
+ echo "**** install pip packages ****" && \
+ pip3 install --no-cache-dir -U \
+	requests \
+	psutil && \
+ echo "**** cleanup ****" && \
+ apk del --purge \
+	build-dependencies && \
+ rm -rf \
+	/root/.cache \
+	/tmp/*
+echo "**** install rclone ****" && \
+VERSION="$(curl -sX GET "https://api.github.com/repos/rclone/rclone/releases/latest" | awk '/tag_name/{print $4;exit}' FS='[""]' | sed -e 's_^v__')"
+   curl -o /tmp/rclone.zip -SL https://github.com/rclone/rclone/releases/download/v${VERSION}/rclone-v${VERSION}-linux-amd64.zip
+   cd /tmp/
+   unzip -q /tmp/rclone.zip
+   mv /tmp/rclone-*-linux-amd64/rclone /usr/local/bin/
+   rm -rf /var/cache/apk/* /tmp/*
+#EOF
