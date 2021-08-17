@@ -1,2 +1,2 @@
-# docker-mod
-Collection of Docker mods for different linuxserver images
+# Docker Mods (https://mods.linuxserver.io/)
+## Personal collection of docker mods for different linuxserver images
