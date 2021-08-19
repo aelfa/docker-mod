@@ -23,6 +23,7 @@
     cd /tmp/ || exit
     unzip -q /tmp/rclone.zip
     mv /tmp/rclone-*-linux-amd64/rclone /usr/local/bin/
+ echo "**** rclone installation successful ****" && \
  echo "**** cleanup ****" && \
  apk del --purge \
     build-dependencies && \
