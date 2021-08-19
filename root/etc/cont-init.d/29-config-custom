@@ -25,8 +25,8 @@
 	/tmp/*
 echo "**** install rclone ****" && \
 VERSION="$(curl -sX GET "https://api.github.com/repos/rclone/rclone/releases/latest" | awk '/tag_name/{print $4;exit}' FS='[""]' | sed -e 's_^v__')"
-   curl -o /tmp/rclone.zip -SL https://github.com/rclone/rclone/releases/download/v${VERSION}/rclone-v${VERSION}-linux-amd64.zip
-   cd /tmp/
+   curl -o /tmp/rclone.zip -SL https://github.com/rclone/rclone/releases/download/v"${VERSION}"/rclone-v"${VERSION}"-linux-amd64.zip
+   cd /tmp/ || exit
    unzip -q /tmp/rclone.zip
    mv /tmp/rclone-*-linux-amd64/rclone /usr/local/bin/
    rm -rf /var/cache/apk/* /tmp/*
