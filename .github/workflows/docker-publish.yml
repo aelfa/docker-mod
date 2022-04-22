@@ -24,7 +24,7 @@ jobs:
           REPO=$CI_REPOSITORY_NAME
           DOCKER_IMAGE=${{ github.repository_owner }}/${REPO}
           if [ "$CI_REF_NAME" == "tautulli" ];then VERSION=tautulli;fi
-          if [ "$CI_REF_NAME" == "trash-updater" ];then VERSION=trash-updater;fi
+          if [ "$CI_REF_NAME" == "alpine" ];then VERSION=alpine;fi
           TAGS="${DOCKER_IMAGE}:${VERSION}"
           echo ::set-output name=tags::${TAGS}
           echo ::set-output name=title::${GITHUB_REPOSITORY}
