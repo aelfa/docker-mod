@@ -1,4 +1,6 @@
-FROM scratch
+FROM ghcr.io/linuxserver/baseimage-alpine:3.15
 
-# copy local files
+# add local files
 COPY root/ /
+
+ENTRYPOINT ["/init"]
